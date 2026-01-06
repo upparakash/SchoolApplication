@@ -1,0 +1,545 @@
+/* ============================
+   CONTAINER
+============================ */
+.fee-container {
+  width: 95%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+.fee-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+}
+
+
+/* ============================
+   SEARCH BOX
+============================ */
+.fee-search-box {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.fee-search-box input {
+  width: 350px;
+  padding: 10px;
+  border: 2px solid #2146c7;
+  border-radius: 6px;
+  outline: none;
+  font-size: 16px;
+}
+
+.fee-search-box button {
+  background: #2146c7;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.fee-search-box button:hover {
+  background: #102a88;
+}
+
+
+/* ============================
+   STUDENT TABLE
+============================ */
+.students-table {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.students-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.students-table th {
+  background: #2146c7;
+  color: white;
+  padding: 12px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.students-table td {
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  border-bottom: 1px solid #ddd;
+}
+
+.student-photo {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.add-fee-btn {
+  background: #0b8c38;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.add-fee-btn:hover {
+  background: #066628;
+}
+
+.history-btn {
+  background: #b85c00;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.history-btn:hover {
+  background: #7a3f00;
+}
+
+
+/* ============================
+   MODAL
+============================ */
+.fee-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.fee-modal-content {
+  background: white;
+  width: 95%;
+  max-width: 650px;
+  padding: 25px;
+  border-radius: 12px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.fee-modal-content h3 {
+  margin-bottom: 15px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  color: #333;
+}
+
+
+/* ============================
+   STUDENT INFO
+============================ */
+.fee-student-info {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+.student-photo-large {
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.fee-student-info p {
+  margin: 3px 0;
+  font-size: 15px;
+}
+
+
+/* ============================
+   FORM GRID
+============================ */
+.fee-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.fee-form-grid input {
+  padding: 10px;
+  font-size: 15px;
+  border: 2px solid #2146c7;
+  border-radius: 6px;
+  outline: none;
+}
+
+
+/* ============================
+   HISTORY TABLE
+============================ */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.history-table th {
+  background: #2146c7;
+  color: white;
+  padding: 10px;
+  text-align: center;
+}
+
+.history-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+  text-align: center;
+}
+
+
+/* ============================
+   MODAL BUTTONS
+============================ */
+.fee-modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.save-btn {
+  background: #2146c7;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background: #102a88;
+}
+
+.close-btn {
+  background: #888;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background: #555;
+}
+
+
+/* ============================
+   RESPONSIVE
+============================ */
+@media (max-width: 600px) {
+  .fee-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fee-student-info {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .student-photo-large {
+    margin-bottom: 10px;
+  }
+}
+
+/* Form Group Wrapper */
+.form-group {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Label */
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+/* Dropdown Select Style */
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #333;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  outline: none;
+  background-color: #fff;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* On Focus */
+.form-group select:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 4px rgba(33, 150, 243, 0.4);
+}
+
+/* On Hover */
+.form-group select:hover {
+  border-color: #888;
+}
+
+/* Dropdown Options */
+.form-group select option {
+  padding: 10px;
+  font-size: 14px;
+}
+
+/* Mobile Responsive */
+@media screen and (max-width: 480px) {
+  .form-group select {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+  }
+}
+
+
+
+/* ===============================
+   MODAL OVERLAY
+================================ */
+.fee-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* ===============================
+   MODAL CONTENT (CENTERED CARD)
+================================ */
+.fee-modal-content {
+  background: #ffffff;
+  width: 92%;
+  max-width: 900px;
+  max-height: 90vh;              /* 🔥 prevents full screen */
+  overflow-y: auto;              /* scroll inside modal */
+  padding: 20px 22px;
+  border-radius: 8px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* ===============================
+   STUDENT INFO HEADER
+================================ */
+.student-info-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #333;
+  background: #f9f9f9;
+  font-size: 14px;
+}
+
+.student-info-box strong {
+  font-weight: 600;
+}
+
+/* ===============================
+   FEE SUMMARY BAR
+================================ */
+.fee-summary-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #333;
+  border-top: none;
+  margin-bottom: 12px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.fee-summary-box div {
+  font-weight: 500;
+}
+
+/* ===============================
+   HEADING
+================================ */
+.fee-modal-content h3 {
+  text-align: center;
+  margin: 10px 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+/* ===============================
+   RECEIPT TABLE
+================================ */
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.receipt-table th,
+.receipt-table td {
+  border: 1px solid #333;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.receipt-table th {
+  background: #f1f1f1;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.receipt-table input[type="checkbox"] {
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+.receipt-table input[type="text"],
+.receipt-table input[type="number"] {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 13px;
+  border: 1px solid #999;
+}
+
+.receipt-table input:disabled {
+  background: #eeeeee;
+  cursor: not-allowed;
+}
+
+/* TOTAL ROW */
+.receipt-table tfoot td {
+  background: #fafafa;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* ===============================
+   DUE DATE ROW
+================================ */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.form-row label {
+  min-width: 80px;
+  font-weight: 600;
+}
+
+.form-row input {
+  padding: 6px 8px;
+  border: 1px solid #999;
+}
+
+/* ===============================
+   ACTION BUTTONS
+================================ */
+.fee-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.fee-modal-buttons button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.fee-modal-buttons button:first-child {
+  background: #2e7d32;
+  color: #ffffff;
+}
+
+.fee-modal-buttons button:last-child {
+  background: #b71c1c;
+  color: #ffffff;
+}
+
+/* ===============================
+   MOBILE RESPONSIVE
+================================ */
+@media (max-width: 768px) {
+  .student-info-box,
+  .fee-summary-box {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .fee-modal-content {
+    padding: 15px;
+    max-height: 95vh;
+  }
+
+  .receipt-table th,
+  .receipt-table td {
+    font-size: 12px;
+  }
+}
+.dues-btn {
+  background: #f57c00;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  margin-left: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
