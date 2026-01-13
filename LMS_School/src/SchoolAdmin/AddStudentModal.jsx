@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./AddStudentModal.css";
+import ImageCropper from "./ImageCropper";
 
 const AddStudentModal = ({ onClose, editData }) => {
   const [step, setStep] = useState(1);
 
+
   const token = localStorage.getItem("schoolToken");
   const schoolCode = localStorage.getItem("schoolCode");
+
+  const [profileImage, setProfileImage] = useState(null);
+  const [rawImage, setRawImage] = useState(null);   // original file
+  const [croppedImage, setCroppedImage] = useState(null); // base64
+  const [showCropper, setShowCropper] = useState(false);
+
+
 
   const [formData, setFormData] = useState({
     // PERSONAL
@@ -24,6 +33,7 @@ const AddStudentModal = ({ onClose, editData }) => {
     // CONTACT
     phone: "",
     email: "",
+    password: "",
     address: "",
     city: "",
     state: "",
@@ -122,44 +132,71 @@ const AddStudentModal = ({ onClose, editData }) => {
   /* ================= SUBMIT (ADD / EDIT) ================= */
 
   const handleSubmit = async () => {
-    if (!formData.confirmationAccepted) {
-      alert("Please confirm all details");
-      return;
-    }
+  if (!formData.confirmationAccepted) {
+    alert("Please confirm all details");
+    return;
+  }
 
-    try {
-      const payload = {
-        ...formData,
-        schoolCode,
-      };
+  try {
+    const fd = new FormData();
 
-      let res;
-
-      if (editData) {
-        // UPDATE
-        res = await axios.put(
-          `http://localhost:4000/api/students/update/${editData.id}`,
-          payload,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+    Object.keys(formData).forEach((key) => {
+      if (Array.isArray(formData[key])) {
+        fd.append(key, JSON.stringify(formData[key]));
       } else {
-        // ADD
-        res = await axios.post(
-          "http://localhost:4000/api/students/add",
-          payload,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        fd.append(key, formData[key]);
       }
+    });
 
-      if (res.data.success) {
-        alert(editData ? "Student Updated Successfully" : "Student Added Successfully");
-        onClose();
-      }
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Server Error");
+    fd.append("schoolCode", schoolCode);
+
+    //  append cropped image
+    if (croppedImage) {
+      const imageFile = base64ToFile(
+        croppedImage,
+        `student_${Date.now()}.jpg`
+      );
+    fd.append("profilePhoto", imageFile);
     }
-  };
+
+    let res;
+
+    if (editData) {
+      res = await axios.put(
+        `http://localhost:4000/api/students/update/${editData.id}`,
+        fd,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      );
+    } else {
+      res = await axios.post(
+        "http://localhost:4000/api/students/add",
+        fd,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      );
+    }
+
+    if (res.data.success) {
+      alert(editData ? "Student Updated Successfully" : "Student Added Successfully");
+      onClose();
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.message || "Server Error");
+  }
+};
+
+
 
   /* ================= REVIEW ROW ================= */
 
@@ -171,6 +208,26 @@ const AddStudentModal = ({ onClose, editData }) => {
 
   /* ================= UI ================= */
 
+
+
+
+
+//image cropper helper function
+  const base64ToFile = (base64, filename) => {
+  const arr = base64.split(",");
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+
+  return new File([u8arr], filename, { type: mime });
+};
+
+
   return (
     <div className="modal-overlay">
       <div className="modal-container">
@@ -179,6 +236,7 @@ const AddStudentModal = ({ onClose, editData }) => {
           <h2>{editData ? "Edit Student" : "Add Student"}</h2>
           <button className="close-btn" onClick={onClose}>✖</button>
         </div>
+
 
         {/* ================= STEPPER ================= */}
         <div className="stepper">
@@ -202,18 +260,18 @@ const AddStudentModal = ({ onClose, editData }) => {
         {/* ================= STEP 1 ================= */}
         {step === 1 && (
           <div className="form-grid">
-            <input name="firstName" placeholder="First Name*" value={formData.firstName} onChange={handleChange}/>
-            <input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange}/>
-            <input name="fatherName" placeholder="Father Name*" value={formData.fatherName} onChange={handleChange}/>
-            <input name="motherName" placeholder="Mother Name" value={formData.motherName} onChange={handleChange}/>
-            <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange}/>
+            <input name="firstName" placeholder="First Name*" value={formData.firstName} onChange={handleChange} />
+            <input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} />
+            <input name="fatherName" placeholder="Father Name*" value={formData.fatherName} onChange={handleChange} />
+            <input name="motherName" placeholder="Mother Name" value={formData.motherName} onChange={handleChange} />
+            <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} />
             <select name="gender" value={formData.gender} onChange={handleChange}>
               <option value="">Gender*</option>
               <option>Male</option><option>Female</option><option>Other</option>
             </select>
-            <input name="bloodGroup" placeholder="Blood Group" value={formData.bloodGroup} onChange={handleChange}/>
-            <input name="nationality" value={formData.nationality} onChange={handleChange}/>
-            <input name="religion" placeholder="Religion" value={formData.religion} onChange={handleChange}/>
+            <input name="bloodGroup" placeholder="Blood Group" value={formData.bloodGroup} onChange={handleChange} />
+            <input name="nationality" value={formData.nationality} onChange={handleChange} />
+            <input name="religion" placeholder="Religion" value={formData.religion} onChange={handleChange} />
             <select name="category" value={formData.category} onChange={handleChange}>
               <option value="">Category</option>
               <option>General</option><option>OBC</option><option>SC</option><option>ST</option>
@@ -224,30 +282,61 @@ const AddStudentModal = ({ onClose, editData }) => {
         {/* ================= STEP 2 ================= */}
         {step === 2 && (
           <div className="form-grid">
-            <input name="phone" placeholder="Phone*" value={formData.phone} onChange={handleChange}/>
-            <input name="email" placeholder="Email" value={formData.email} onChange={handleChange}/>
-            <textarea className="full-width" name="address" placeholder="Address*" value={formData.address} onChange={handleChange}/>
-            <input name="city" placeholder="City*" value={formData.city} onChange={handleChange}/>
-            <input name="state" placeholder="State" value={formData.state} onChange={handleChange}/>
-            <input name="pinCode" placeholder="PIN" value={formData.pinCode} onChange={handleChange}/>
-            <input name="guardianName" placeholder="Guardian Name" value={formData.guardianName} onChange={handleChange}/>
-            <input name="guardianPhone" placeholder="Guardian Phone*" value={formData.guardianPhone} onChange={handleChange}/>
-            <input name="relation" placeholder="Relation" value={formData.relation} onChange={handleChange}/>
-            <input name="emergencyContact" placeholder="Emergency Contact" value={formData.emergencyContact} onChange={handleChange}/>
+            <div className="profile-upload">
+              <label>Profile Photo</label>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setRawImage(file);
+                    setShowCropper(true);
+                  }
+                }}
+              />
+
+              {croppedImage && (
+                <img
+                  src={croppedImage}
+                  alt="Profile Preview"
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    marginTop: 10
+                  }}
+                />
+              )}
+            </div>
+
+            <input name="phone" placeholder="Phone*" value={formData.phone} onChange={handleChange} />
+            <input name="email" placeholder="Email" value={formData.email} onChange={handleChange} />
+            <input name="password" placeholder="Password" value={formData.password} onChange={handleChange} />
+            <textarea className="full-width" name="address" placeholder="Address*" value={formData.address} onChange={handleChange} />
+            <input name="city" placeholder="City*" value={formData.city} onChange={handleChange} />
+            <input name="state" placeholder="State" value={formData.state} onChange={handleChange} />
+            <input name="pinCode" placeholder="PIN" value={formData.pinCode} onChange={handleChange} />
+            <input name="guardianName" placeholder="Guardian Name" value={formData.guardianName} onChange={handleChange} />
+            <input name="guardianPhone" placeholder="Guardian Phone*" value={formData.guardianPhone} onChange={handleChange} />
+            <input name="relation" placeholder="Relation" value={formData.relation} onChange={handleChange} />
+            <input name="emergencyContact" placeholder="Emergency Contact" value={formData.emergencyContact} onChange={handleChange} />
           </div>
         )}
 
         {/* ================= STEP 3 ================= */}
         {step === 3 && (
           <div className="form-grid">
-            <input name="studentClass" placeholder="Class*" value={formData.studentClass} onChange={handleChange}/>
-            <input name="section" placeholder="Section*" value={formData.section} onChange={handleChange}/>
-            <input name="rollNumber" placeholder="Roll Number" value={formData.rollNumber} onChange={handleChange}/>
-            <input name="academicSession" value={formData.academicSession} onChange={handleChange}/>
-            <input name="feeCategory" value={formData.feeCategory} onChange={handleChange}/>
-            <input type="number" name="feeDiscount" value={formData.feeDiscount} onChange={handleChange}/>
-            <input name="previousClass" placeholder="Previous Class" value={formData.previousClass} onChange={handleChange}/>
-            <input name="previousSchool" placeholder="Previous School" value={formData.previousSchool} onChange={handleChange}/>
+            <input name="studentClass" placeholder="Class*" value={formData.studentClass} onChange={handleChange} />
+            <input name="section" placeholder="Section*" value={formData.section} onChange={handleChange} />
+            <input name="rollNumber" placeholder="Roll Number" value={formData.rollNumber} onChange={handleChange} />
+            <input name="academicSession" value={formData.academicSession} onChange={handleChange} />
+            <input name="feeCategory" value={formData.feeCategory} onChange={handleChange} />
+            <input type="number" name="feeDiscount" value={formData.feeDiscount} onChange={handleChange} />
+            <input name="previousClass" placeholder="Previous Class" value={formData.previousClass} onChange={handleChange} />
+            <input name="previousSchool" placeholder="Previous School" value={formData.previousSchool} onChange={handleChange} />
           </div>
         )}
 
@@ -255,27 +344,27 @@ const AddStudentModal = ({ onClose, editData }) => {
         {step === 4 && (
           <>
             <div className="form-grid">
-              <textarea name="medicalConditions" placeholder="Medical Conditions" value={formData.medicalConditions} onChange={handleChange}/>
-              <textarea name="allergies" placeholder="Allergies" value={formData.allergies} onChange={handleChange}/>
-              <textarea name="specialNeeds" placeholder="Special Needs" value={formData.specialNeeds} onChange={handleChange}/>
+              <textarea name="medicalConditions" placeholder="Medical Conditions" value={formData.medicalConditions} onChange={handleChange} />
+              <textarea name="allergies" placeholder="Allergies" value={formData.allergies} onChange={handleChange} />
+              <textarea name="specialNeeds" placeholder="Special Needs" value={formData.specialNeeds} onChange={handleChange} />
             </div>
 
             <h4>Documents</h4>
             <div className="checkbox-grid">
-              {["Birth Certificate","TC","Mark Sheet","Address Proof"].map(d=>(
+              {["Birth Certificate", "TC", "Mark Sheet", "Address Proof"].map(d => (
                 <label key={d}>
                   <input type="checkbox" checked={formData.documents.includes(d)}
-                    onChange={()=>handleArrayCheck("documents",d)}/> {d}
+                    onChange={() => handleArrayCheck("documents", d)} /> {d}
                 </label>
               ))}
             </div>
 
             <h4>Optional Services</h4>
             <div className="checkbox-grid">
-              {["Transport","Hostel","Lunch","Coaching"].map(s=>(
+              {["Transport", "Hostel", "Lunch", "Coaching"].map(s => (
                 <label key={s}>
                   <input type="checkbox" checked={formData.optionalServices.includes(s)}
-                    onChange={()=>handleArrayCheck("optionalServices",s)}/> {s}
+                    onChange={() => handleArrayCheck("optionalServices", s)} /> {s}
                 </label>
               ))}
             </div>
@@ -298,7 +387,7 @@ const AddStudentModal = ({ onClose, editData }) => {
             <label className="final-confirm">
               <input type="checkbox" name="confirmationAccepted"
                 checked={formData.confirmationAccepted}
-                onChange={handleChange}/> I confirm all details are correct
+                onChange={handleChange} /> I confirm all details are correct
             </label>
           </div>
         )}
@@ -316,6 +405,18 @@ const AddStudentModal = ({ onClose, editData }) => {
         </div>
 
       </div>
+
+      {/*  IMAGE CROPPER MODAL */}
+    {showCropper && (
+      <ImageCropper
+        image={rawImage}
+        onSave={(img) => {
+          setCroppedImage(img);
+          setShowCropper(false);
+        }}
+        onClose={() => setShowCropper(false)}
+      />
+    )}
     </div>
   );
 };

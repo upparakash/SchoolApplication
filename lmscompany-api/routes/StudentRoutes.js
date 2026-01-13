@@ -1,4 +1,5 @@
 const express = require("express");
+const router = express.Router(); 
 const multer = require("multer");
 const { protect } = require("../middleware/auth");
 
@@ -8,17 +9,27 @@ const {
   updateStudent,
   deleteStudent,
   studentLogin,
-  searchStudents,    // ⭐ ADD THIS
+  searchStudents,    
   studentProfile
 } = require("../controllers/StudentController");
 
-const router = express.Router();
 
-const storage = multer.memoryStorage();
+
+// Configure storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Make sure this folder exists
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  }
+});
+
 const upload = multer({ storage });
 
 //  Add Student
-router.post("/add", upload.single("photo"), addStudent);
+router.post("/add", upload.single("profilePhoto"), addStudent);
 
 //  Get All Students
 router.get("/", getStudents);
@@ -27,7 +38,7 @@ router.get("/", getStudents);
 router.get("/search", searchStudents);
 
 //  Update Student
-router.put("/update/:id", upload.single("photo"), updateStudent);
+router.put("/update/:id", upload.single("profilePhoto"), updateStudent);
 
 //  Delete Student
 router.delete("/delete/:id", deleteStudent);

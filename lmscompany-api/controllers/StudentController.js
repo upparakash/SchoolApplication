@@ -31,6 +31,7 @@ exports.addStudent = async (req, res) => {
       // ================= CONTACT INFO =================
       phone,
       email,
+      password,
       address,
       city,
       state,
@@ -86,11 +87,20 @@ exports.addStudent = async (req, res) => {
       });
     }
 
+
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+   
+    const profilePhoto = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+      : null;
+
     const sql = `
       INSERT INTO students1 (
         firstName, lastName, fatherName, motherName, dateOfBirth,
         gender, bloodGroup, nationality, category, religion,
-        phone, email, address, city, state, pinCode,
+        phone, email, password, profilePhoto, address, city, state, pinCode,
         guardianName, guardianPhone, relation, emergencyContact,
         studentClass, section, rollNumber, academicSession,
         feeCategory, feeDiscount, previousClass, previousSchool,
@@ -98,7 +108,7 @@ exports.addStudent = async (req, res) => {
         documents, optionalServices,
         schoolCode
       )
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `;
 
     await db.query(sql, [
@@ -114,6 +124,8 @@ exports.addStudent = async (req, res) => {
       religion,
       phone,
       email,
+      hashedPassword,
+      profilePhoto,
       address,
       city,
       state,
@@ -196,6 +208,8 @@ exports.getStudents = async (req, res) => {
 
         phone,
         email,
+        password,
+        profilePhoto,
         address,
         city,
         state,
@@ -249,7 +263,7 @@ exports.getStudents = async (req, res) => {
 };
 
 
-//  UPDATE Student
+
 // UPDATE Student
 exports.updateStudent = async (req, res) => {
   try {
@@ -258,7 +272,7 @@ exports.updateStudent = async (req, res) => {
     const {
       firstName, lastName, fatherName, motherName, dateOfBirth,
       gender, bloodGroup, nationality, category, religion,
-      phone, email, address, city, state, pinCode,
+      phone, email, password,  address, city, state, pinCode,
       guardianName, guardianPhone, relation, emergencyContact,
       studentClass, section, rollNumber, academicSession,
       feeCategory, feeDiscount, previousClass, previousSchool,
@@ -266,11 +280,21 @@ exports.updateStudent = async (req, res) => {
       documents, optionalServices
     } = req.body;
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+   
+    
+
+    const profilePhoto = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+      : null;
+
+
     const sql = `
       UPDATE students1 SET
         firstName=?, lastName=?, fatherName=?, motherName=?, dateOfBirth=?,
         gender=?, bloodGroup=?, nationality=?, category=?, religion=?,
-        phone=?, email=?, address=?, city=?, state=?, pinCode=?,
+        phone=?, email=?, password=?, profilePhoto=?, address=?, city=?, state=?, pinCode=?,
         guardianName=?, guardianPhone=?, relation=?, emergencyContact=?,
         studentClass=?, section=?, rollNumber=?, academicSession=?,
         feeCategory=?, feeDiscount=?, previousClass=?, previousSchool=?,
@@ -279,10 +303,11 @@ exports.updateStudent = async (req, res) => {
       WHERE id = ?
     `;
 
+
     await db.query(sql, [
       firstName, lastName, fatherName, motherName, dateOfBirth,
       gender, bloodGroup, nationality, category, religion,
-      phone, email, address, city, state, pinCode,
+      phone, email, hashedPassword, profilePhoto, address, city, state, pinCode,
       guardianName, guardianPhone, relation, emergencyContact,
       studentClass, section, rollNumber, academicSession,
       feeCategory, feeDiscount, previousClass, previousSchool,
@@ -413,6 +438,7 @@ exports.studentProfile = async (req, res) => {
         religion,
         phone,
         email,
+        profilePhoto,
         address,
         city,
         state,
@@ -498,6 +524,7 @@ exports.searchStudents = async (req, res) => {
         religion,
         phone,
         email,
+        ProfilePhoto,
         address,
         city,
         state,
