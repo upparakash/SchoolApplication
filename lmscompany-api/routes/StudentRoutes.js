@@ -17,25 +17,25 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// ➤ Add Student
+//  Add Student
 router.post("/add", upload.single("photo"), addStudent);
 
-// ➤ Get All Students
+//  Get All Students
 router.get("/", getStudents);
 
-// ⭐ SEARCH Students (new)
+//  SEARCH Students (new)
 router.get("/search", searchStudents);
 
-// ➤ Update Student
+//  Update Student
 router.put("/update/:id", upload.single("photo"), updateStudent);
 
-// ➤ Delete Student
+//  Delete Student
 router.delete("/delete/:id", deleteStudent);
 
-// ➤ Login
+//  Login
 router.post("/login", studentLogin);
 
-// ➤ Protected profile
+//  Protected profile
 router.get("/profile", protect, studentProfile);
 
 module.exports = router;

@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken"); // ✅ ADD THIS
+const jwt = require("jsonwebtoken"); // ADD THIS
 // Save uploaded photo
 const saveImage = (file) => {
   if (!file) return null;
@@ -75,7 +75,7 @@ exports.addStudent = async (req, res) => {
 
     // 🔹 Duplicate check (email + school)
     const [existing] = await db.query(
-      "SELECT id FROM students WHERE email = ? AND schoolCode = ?",
+      "SELECT id FROM students1 WHERE email = ? AND schoolCode = ?",
       [email, schoolCode]
     );
 
@@ -87,7 +87,7 @@ exports.addStudent = async (req, res) => {
     }
 
     const sql = `
-      INSERT INTO students (
+      INSERT INTO students1 (
         firstName, lastName, fatherName, motherName, dateOfBirth,
         gender, bloodGroup, nationality, category, religion,
         phone, email, address, city, state, pinCode,
@@ -152,57 +152,144 @@ exports.addStudent = async (req, res) => {
 };
 
 
-// 📍 GET Students
-exports.getStudents = async (req, res) => {
+// GET Students
+const safeJsonParse = (value) => {
   try {
-    const { school_code } = req.query;
+    if (!value) return [];
+    if (typeof value !== "string") return value;
 
-    if (!school_code)
-      return res.status(400).json({ success: false, message: "school_code required" });
+    if (value.trim().startsWith("[")) {
+      return JSON.parse(value);
+    }
 
-    const [rows] = await db.query(
-      `SELECT id, fullname, admissionId, standard, section, dateofbirth, gender,
-      contactNumber, address, email, photo, schoolCode
-      FROM students WHERE schoolCode = ?`,
-      [school_code]
-    );
-
-    res.json({ success: true, data: rows });
-  } catch (err) {
-    console.error("Get Students Error:", err);
-    res.status(500).json({ success: false, message: "Server Error" });
+    return value.split(",").map((v) => v.trim());
+  } catch {
+    return [];
   }
 };
 
-// 📍 UPDATE Student
-exports.updateStudent = async (req, res) => {
+// GET Students
+exports.getStudents = async (req, res) => {
   try {
-    const id = req.params.id;
-    const {
-      fullname, admissionId, standard, section, dateofbirth,
-      gender, contactNumber, address, email, schoolCode
-    } = req.body;
+    const { schoolCode } = req.query;
 
-    let photoUrl = null;
-
-    if (req.file) {
-      photoUrl = saveImage(req.file);
-      const [[old]] = await db.query("SELECT photo FROM students WHERE id = ?", [id]);
-      if (old?.photo) {
-        const oldPath = path.join(__dirname, "..", old.photo);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
+    if (!schoolCode) {
+      return res.status(400).json({
+        success: false,
+        message: "schoolCode is required"
+      });
     }
 
+    const [rows] = await db.query(
+      `SELECT 
+        id,
+        firstName,
+        lastName,
+        fatherName,
+        motherName,
+        dateOfBirth,
+        gender,
+        bloodGroup,
+        nationality,
+        category,
+        religion,
+
+        phone,
+        email,
+        address,
+        city,
+        state,
+        pinCode,
+        guardianName,
+        guardianPhone,
+        relation,
+        emergencyContact,
+
+        studentClass,
+        section,
+        rollNumber,
+        academicSession,
+        feeCategory,
+        feeDiscount,
+        previousClass,
+        previousSchool,
+
+        medicalConditions,
+        allergies,
+        specialNeeds,
+        documents,
+        optionalServices,
+
+        schoolCode,
+        createdAt
+      FROM students1
+      WHERE schoolCode = ?
+      ORDER BY id DESC`,
+      [schoolCode]
+    );
+
+    const students = rows.map((s) => ({
+      ...s,
+      documents: safeJsonParse(s.documents),
+      optionalServices: safeJsonParse(s.optionalServices),
+    }));
+
+    res.json({
+      success: true,
+      total: students.length,
+      data: students
+    });
+  } catch (err) {
+    console.error("Get Students Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+};
+
+
+//  UPDATE Student
+// UPDATE Student
+exports.updateStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      firstName, lastName, fatherName, motherName, dateOfBirth,
+      gender, bloodGroup, nationality, category, religion,
+      phone, email, address, city, state, pinCode,
+      guardianName, guardianPhone, relation, emergencyContact,
+      studentClass, section, rollNumber, academicSession,
+      feeCategory, feeDiscount, previousClass, previousSchool,
+      medicalConditions, allergies, specialNeeds,
+      documents, optionalServices
+    } = req.body;
+
     const sql = `
-      UPDATE students SET fullname=?, admissionId=?, standard=?, section=?, dateofbirth=?, gender=?,
-      contactNumber=?, address=?, email=?, photo=COALESCE(?, photo), schoolCode=?
-      WHERE id=?
+      UPDATE students1 SET
+        firstName=?, lastName=?, fatherName=?, motherName=?, dateOfBirth=?,
+        gender=?, bloodGroup=?, nationality=?, category=?, religion=?,
+        phone=?, email=?, address=?, city=?, state=?, pinCode=?,
+        guardianName=?, guardianPhone=?, relation=?, emergencyContact=?,
+        studentClass=?, section=?, rollNumber=?, academicSession=?,
+        feeCategory=?, feeDiscount=?, previousClass=?, previousSchool=?,
+        medicalConditions=?, allergies=?, specialNeeds=?,
+        documents=?, optionalServices=?
+      WHERE id = ?
     `;
 
     await db.query(sql, [
-      fullname, admissionId, standard, section, dateofbirth, gender,
-      contactNumber, address, email, photoUrl, schoolCode, id
+      firstName, lastName, fatherName, motherName, dateOfBirth,
+      gender, bloodGroup, nationality, category, religion,
+      phone, email, address, city, state, pinCode,
+      guardianName, guardianPhone, relation, emergencyContact,
+      studentClass, section, rollNumber, academicSession,
+      feeCategory, feeDiscount, previousClass, previousSchool,
+      medicalConditions, allergies, specialNeeds,
+      JSON.stringify(documents || []),
+      JSON.stringify(optionalServices || []),
+      id
     ]);
 
     res.json({ success: true, message: "Student updated successfully" });
@@ -212,7 +299,8 @@ exports.updateStudent = async (req, res) => {
   }
 };
 
-// 📍 DELETE Student
+
+// DELETE Student
 exports.deleteStudent = async (req, res) => {
   try {
     const id = req.params.id;
@@ -305,24 +393,79 @@ exports.studentLogin = async (req, res) => {
   }
 };
 
-// ✅ Get Logged-in Student Profile
+//  Get Logged-in Student Profile
 exports.studentProfile = async (req, res) => {
   try {
     const { admissionId, schoolCode } = req.user; // comes from JWT
 
     const [student] = await db.query(
-      "SELECT fullname, admissionId, standard, section, dateofbirth, gender, contactNumber, address, email, photo, schoolCode FROM students WHERE admissionId = ? AND schoolCode = ?",
+      `SELECT 
+        id,
+        firstName,
+        lastName,
+        fatherName,
+        motherName,
+        dateOfBirth,
+        gender,
+        bloodGroup,
+        nationality,
+        category,
+        religion,
+        phone,
+        email,
+        address,
+        city,
+        state,
+        pinCode,
+        guardianName,
+        guardianPhone,
+        relation,
+        emergencyContact,
+        studentClass,
+        section,
+        rollNumber,
+        academicSession,
+        feeCategory,
+        feeDiscount,
+        previousClass,
+        previousSchool,
+        medicalConditions,
+        allergies,
+        specialNeeds,
+        documents,
+        optionalServices,
+        photo,
+        schoolCode,
+        createdAt
+      FROM students1 
+      WHERE id = ? AND schoolCode = ?`,
       [admissionId, schoolCode]
     );
 
     if (student.length === 0) {
-      return res.status(404).json({ success: false, message: "Student not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Student not found" 
+      });
     }
 
-    res.json({ success: true, data: student[0] });
+    const studentData = {
+      ...student[0],
+      documents: safeJsonParse(student[0].documents),
+      optionalServices: safeJsonParse(student[0].optionalServices),
+    };
+
+    res.json({ 
+      success: true, 
+      data: studentData 
+    });
+    
   } catch (err) {
     console.error("Student Profile Error:", err);
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Server Error" 
+    });
   }
 };
 
@@ -341,22 +484,76 @@ exports.searchStudents = async (req, res) => {
     const search = `%${query}%`;
 
     const [rows] = await db.query(
-      `SELECT id, fullname, admissionId, contactNumber, email, photo 
-       FROM students 
-       WHERE schoolCode = ?
-       AND (
-            admissionId LIKE ?
-            OR fullname LIKE ?
-            OR contactNumber LIKE ?
-            OR email LIKE ?
-       )`,
-      [schoolCode, search, search, search, search]
+      `SELECT 
+        id,
+        firstName,
+        lastName,
+        fatherName,
+        motherName,
+        dateOfBirth,
+        gender,
+        bloodGroup,
+        nationality,
+        category,
+        religion,
+        phone,
+        email,
+        address,
+        city,
+        state,
+        pinCode,
+        guardianName,
+        guardianPhone,
+        relation,
+        emergencyContact,
+        studentClass,
+        section,
+        rollNumber,
+        academicSession,
+        feeCategory,
+        feeDiscount,
+        previousClass,
+        previousSchool,
+        medicalConditions,
+        allergies,
+        specialNeeds,
+        documents,
+        optionalServices,
+        schoolCode,
+        createdAt
+      FROM students1
+      WHERE schoolCode = ?
+      AND (
+        CONCAT(firstName, ' ', lastName) LIKE ?
+        OR firstName LIKE ?
+        OR lastName LIKE ?
+        OR phone LIKE ?
+        OR email LIKE ?
+        OR rollNumber LIKE ?
+        OR studentClass LIKE ?
+        OR CAST(id AS CHAR) LIKE ?
+      )
+      ORDER BY id DESC`,
+      [schoolCode, search, search, search, search, search, search, search, search]
     );
 
-    res.json({ success: true, data: rows });
+    const students = rows.map((s) => ({
+      ...s,
+      documents: safeJsonParse(s.documents),
+      optionalServices: safeJsonParse(s.optionalServices),
+    }));
+
+    res.json({ 
+      success: true, 
+      total: students.length,
+      data: students 
+    });
 
   } catch (err) {
     console.error("Search Students Error:", err);
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Server Error" 
+    });
   }
 };

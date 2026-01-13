@@ -5,50 +5,63 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Search, Phone, GraduationCap } from "lucide-react";
 import "./StudentManagement.css";
 import AddStudentModal from "./AddStudentModal";
+import ViewStudentModal from "./ViewStudentModal";
 const API_BASE = import.meta.env.VITE_API_URL;
 
 const StudentManagement = () => {
   const navigate = useNavigate();
+  const [viewStudent, setViewStudent] = useState(null);
+  const [editStudent, setEditStudent] = useState(null);
   const token = localStorage.getItem("schoolToken");
   const schoolCode = localStorage.getItem("schoolCode");
+
   const [openAddModal, setOpenAddModal] = useState(false);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [searchName, setSearchName] = useState("");
   const [searchPhone, setSearchPhone] = useState("");
   const [filterClass, setFilterClass] = useState("");
 
   useEffect(() => {
     if (token) fetchStudents();
+    // eslint-disable-next-line
   }, [token]);
+
+  /* ================= FETCH STUDENTS ================= */
 
   const fetchStudents = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE}/api/students`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { school_code: schoolCode },
+        headers: {
+          Authorization: `Bearer ${token}`, // if backend checks token
+        },
+        params: {
+          schoolCode: schoolCode, // matches your GET API
+        },
       });
+
       setStudents(res.data.data || []);
     } catch (err) {
       console.error("Fetch students error:", err);
+      alert("Failed to load students");
     } finally {
       setLoading(false);
     }
   };
 
-  //  FIXED FILTER LOGIC
-  const filteredStudents = students.filter((s) => {
-    const nameMatch = s.fullname
-      ?.toLowerCase()
-      .includes(searchName.toLowerCase());
+  /* ================= FILTER LOGIC ================= */
 
-    const phoneMatch = String(s.contactNumber || "").includes(searchPhone);
+  const filteredStudents = students.filter((s) => {
+    const fullName = `${s.firstName} ${s.lastName || ""}`.toLowerCase();
+
+    const nameMatch = fullName.includes(searchName.toLowerCase());
+
+    const phoneMatch = String(s.phone || "").includes(searchPhone);
 
     const classMatch =
-      filterClass === ""
-        ? true
-        : Number(s.standard) === Number(filterClass);
+      filterClass === "" ? true : String(s.studentClass) === String(filterClass);
 
     return nameMatch && phoneMatch && classMatch;
   });
@@ -56,6 +69,8 @@ const StudentManagement = () => {
   if (!token) {
     return <p style={{ padding: 20 }}>Please login to continue</p>;
   }
+
+  /* ================= UI ================= */
 
   return (
     <div className="student-page">
@@ -74,10 +89,16 @@ const StudentManagement = () => {
         <button className="add-btn" onClick={() => setOpenAddModal(true)}>
           <Plus /> Add New Student
         </button>
-
       </div>
+
+      {/* ===== ADD MODAL ===== */}
       {openAddModal && (
-        <AddStudentModal onClose={() => setOpenAddModal(false)} />
+        <AddStudentModal
+          onClose={() => {
+            setOpenAddModal(false);
+            fetchStudents(); // reload after add
+          }}
+        />
       )}
 
       {/* ===== FILTERS ===== */}
@@ -113,7 +134,7 @@ const StudentManagement = () => {
               onChange={(e) => setFilterClass(e.target.value)}
             >
               <option value="">All Classes</option>
-              {[...new Set(students.map((s) => s.standard))].map((cls) => (
+              {[...new Set(students.map((s) => s.studentClass))].map((cls) => (
                 <option key={cls} value={cls}>
                   Class {cls}
                 </option>
@@ -160,18 +181,34 @@ const StudentManagement = () => {
                   </td>
                 </tr>
               ) : (
-                filteredStudents.map((s, i) => (
+                filteredStudents.map((s) => (
                   <tr key={s.id}>
-                    <td className="roll">{s.admissionId}</td>
-                    <td>{s.fullname}</td>
+                    <td className="roll">{s.rollNumber || "-"}</td>
+
+                    <td>{s.firstName} {s.lastName}</td>
+
                     <td>
                       <span className="class-chip">
-                        Class {s.standard} {s.section}
+                        Class {s.studentClass} {s.section}
                       </span>
                     </td>
-                    <td>{s.contactNumber}</td>
+
+                    <td>{s.phone}</td>
+
                     <td>
-                      <button className="view-btn">View</button>
+<button
+  className="view-btn"
+  onClick={() => setViewStudent(s)}
+>
+  View
+</button>
+<button
+  className="edit-btn"
+  onClick={() => setEditStudent(s)}
+>
+  Edit
+</button>
+
                     </td>
                   </tr>
                 ))
@@ -180,6 +217,23 @@ const StudentManagement = () => {
           </table>
         )}
       </div>
+      {/* ===== VIEW STUDENT MODAL ===== */}
+{viewStudent && (
+  <ViewStudentModal
+    student={viewStudent}
+    onClose={() => setViewStudent(null)}
+  />
+)}
+{editStudent && (
+  <AddStudentModal
+    editData={editStudent}
+    onClose={() => {
+      setEditStudent(null);
+      fetchStudents();
+    }}
+  />
+)}
+
     </div>
   );
 };
