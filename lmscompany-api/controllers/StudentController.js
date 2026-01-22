@@ -31,6 +31,7 @@ exports.addStudent = async (req, res) => {
       // ================= CONTACT INFO =================
       phone,
       email,
+      password,
       address,
       city,
       state,
@@ -86,11 +87,20 @@ exports.addStudent = async (req, res) => {
       });
     }
 
+
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+   
+    const profilePhoto = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+      : null;
+
     const sql = `
       INSERT INTO students1 (
         firstName, lastName, fatherName, motherName, dateOfBirth,
         gender, bloodGroup, nationality, category, religion,
-        phone, email, address, city, state, pinCode,
+        phone, email, password, profilePhoto, address, city, state, pinCode,
         guardianName, guardianPhone, relation, emergencyContact,
         studentClass, section, rollNumber, academicSession,
         feeCategory, feeDiscount, previousClass, previousSchool,
@@ -98,7 +108,7 @@ exports.addStudent = async (req, res) => {
         documents, optionalServices,
         schoolCode
       )
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `;
 
     await db.query(sql, [
@@ -114,6 +124,8 @@ exports.addStudent = async (req, res) => {
       religion,
       phone,
       email,
+      hashedPassword,
+      profilePhoto,
       address,
       city,
       state,
@@ -196,6 +208,8 @@ exports.getStudents = async (req, res) => {
 
         phone,
         email,
+        password,
+        profilePhoto,
         address,
         city,
         state,
@@ -249,7 +263,7 @@ exports.getStudents = async (req, res) => {
 };
 
 
-//  UPDATE Student
+
 // UPDATE Student
 exports.updateStudent = async (req, res) => {
   try {
@@ -258,7 +272,7 @@ exports.updateStudent = async (req, res) => {
     const {
       firstName, lastName, fatherName, motherName, dateOfBirth,
       gender, bloodGroup, nationality, category, religion,
-      phone, email, address, city, state, pinCode,
+      phone, email, password,  address, city, state, pinCode,
       guardianName, guardianPhone, relation, emergencyContact,
       studentClass, section, rollNumber, academicSession,
       feeCategory, feeDiscount, previousClass, previousSchool,
@@ -266,11 +280,21 @@ exports.updateStudent = async (req, res) => {
       documents, optionalServices
     } = req.body;
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+   
+    
+
+    const profilePhoto = req.file
+      ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+      : null;
+
+
     const sql = `
       UPDATE students1 SET
         firstName=?, lastName=?, fatherName=?, motherName=?, dateOfBirth=?,
         gender=?, bloodGroup=?, nationality=?, category=?, religion=?,
-        phone=?, email=?, address=?, city=?, state=?, pinCode=?,
+        phone=?, email=?, password=?, profilePhoto=?, address=?, city=?, state=?, pinCode=?,
         guardianName=?, guardianPhone=?, relation=?, emergencyContact=?,
         studentClass=?, section=?, rollNumber=?, academicSession=?,
         feeCategory=?, feeDiscount=?, previousClass=?, previousSchool=?,
@@ -279,10 +303,11 @@ exports.updateStudent = async (req, res) => {
       WHERE id = ?
     `;
 
+
     await db.query(sql, [
       firstName, lastName, fatherName, motherName, dateOfBirth,
       gender, bloodGroup, nationality, category, religion,
-      phone, email, address, city, state, pinCode,
+      phone, email, hashedPassword, profilePhoto, address, city, state, pinCode,
       guardianName, guardianPhone, relation, emergencyContact,
       studentClass, section, rollNumber, academicSession,
       feeCategory, feeDiscount, previousClass, previousSchool,
@@ -301,79 +326,125 @@ exports.updateStudent = async (req, res) => {
 
 
 // DELETE Student
+// ================= DELETE STUDENT =================
 exports.deleteStudent = async (req, res) => {
   try {
-    const id = req.params.id;
+    const { id } = req.params;
 
-    const [[student]] = await db.query("SELECT photo FROM students WHERE id=?", [id]);
-
-    if (!student) return res.status(404).json({ success: false, message: "Not found" });
-
-    if (student.photo) {
-      const filePath = path.join(__dirname, "..", student.photo);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Student ID is required"
+      });
     }
 
-    await db.query("DELETE FROM students WHERE id=?", [id]);
+    // 🔍 Check student exists and get photo
+    const [[student]] = await db.query(
+      "SELECT profilePhoto FROM students1 WHERE id = ?",
+      [id]
+    );
 
-    res.json({ success: true, message: "Student deleted successfully" });
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found"
+      });
+    }
+
+    // 🖼️ Delete photo from uploads folder (if exists)
+    if (student.profilePhoto) {
+      try {
+        // Example stored URL:
+        // http://localhost:4000/uploads/filename.jpg
+        const fileName = student.profilePhoto.split("/uploads/")[1];
+
+        if (fileName) {
+          const filePath = path.join(__dirname, "..", "uploads", fileName);
+
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
+      } catch (fileErr) {
+        console.warn("Image delete warning:", fileErr.message);
+      }
+    }
+
+    // 🗑️ Delete student record
+    await db.query("DELETE FROM students1 WHERE id = ?", [id]);
+
+    res.json({
+      success: true,
+      message: "Student deleted successfully"
+    });
+
   } catch (err) {
     console.error("Delete Student Error:", err);
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
   }
 };
+
 
 
 exports.studentLogin = async (req, res) => {
   try {
     console.log("Login Request Body:", req.body);
 
-    const { admissionId, password, schoolCode } = req.body;
+    const { email, password, schoolCode } = req.body;
 
-    if (!admissionId || !password || !schoolCode) {
-      console.log("Missing fields");
+    if (!email || !password || !schoolCode) {
       return res.status(400).json({
         success: false,
-        message: "Admission ID, Password & School Code are required"
+        message: "Email, Password & School Code are required"
       });
     }
 
     console.log("Checking student in DB...");
 
     const [rows] = await db.query(
-      "SELECT id, fullname, admissionId, password, schoolCode FROM students WHERE admissionId = ? AND schoolCode = ?",
-      [admissionId, schoolCode]
+      `
+        SELECT 
+          id,
+          firstName,
+          lastName,
+          email,
+          password,
+          schoolCode
+        FROM students1
+        WHERE email = ? AND schoolCode = ?
+      `,
+      [email, schoolCode]
     );
 
-    console.log("DB Result:", rows);
-
     if (rows.length === 0) {
-      console.log("No student found");
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
     }
 
     const student = rows[0];
-    console.log("Student Found:", student);
 
     const isMatch = await bcrypt.compare(password, student.password);
-    console.log("Password Match:", isMatch);
-
     if (!isMatch) {
-      console.log("Password does not match");
-      return res.status(401).json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
     }
 
     const token = jwt.sign(
       {
         id: student.id,
-        admissionId: student.admissionId,
+        email: student.email,
         schoolCode: student.schoolCode
       },
       process.env.JWT_SECRET || "STUDENT_SECRET_KEY",
       { expiresIn: "7d" }
     );
-
-    console.log("Token Generated");
 
     res.json({
       success: true,
@@ -381,22 +452,26 @@ exports.studentLogin = async (req, res) => {
       token,
       student: {
         id: student.id,
-        fullname: student.fullname,
-        admissionId: student.admissionId,
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
         schoolCode: student.schoolCode
       }
     });
 
   } catch (err) {
-    console.error("Student Login Error:", err.message, err.stack);
-    res.status(500).json({ success: false, message: "Server Error", error: err.message });
+    console.error("Student Login Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
   }
 };
+
 
 //  Get Logged-in Student Profile
 exports.studentProfile = async (req, res) => {
   try {
-    const { admissionId, schoolCode } = req.user; // comes from JWT
+    const { id, schoolCode } = req.user; // ✅ Correct fields from JWT
 
     const [student] = await db.query(
       `SELECT 
@@ -413,6 +488,7 @@ exports.studentProfile = async (req, res) => {
         religion,
         phone,
         email,
+        profilePhoto,
         address,
         city,
         state,
@@ -434,12 +510,11 @@ exports.studentProfile = async (req, res) => {
         specialNeeds,
         documents,
         optionalServices,
-        photo,
         schoolCode,
         createdAt
       FROM students1 
       WHERE id = ? AND schoolCode = ?`,
-      [admissionId, schoolCode]
+      [id, schoolCode]
     );
 
     if (student.length === 0) {
@@ -459,7 +534,7 @@ exports.studentProfile = async (req, res) => {
       success: true, 
       data: studentData 
     });
-    
+
   } catch (err) {
     console.error("Student Profile Error:", err);
     res.status(500).json({ 
@@ -468,6 +543,7 @@ exports.studentProfile = async (req, res) => {
     });
   }
 };
+
 
 
 exports.searchStudents = async (req, res) => {
@@ -498,6 +574,7 @@ exports.searchStudents = async (req, res) => {
         religion,
         phone,
         email,
+        ProfilePhoto,
         address,
         city,
         state,

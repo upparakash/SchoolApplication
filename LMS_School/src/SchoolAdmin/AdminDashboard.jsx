@@ -35,9 +35,9 @@ export default function AdminDashboard() {
       <h2 className="section-title">Quick Overview</h2>
 
       <div className="cards-grid">
-          <Link to="/school-dashboard/student" className="card-link">
-    <StatCard title="Total Students" value="245" type="blue" />
-  </Link>
+        <Link to="/school-dashboard/student" className="card-link">
+          <StatCard title="Total Students" value="245" type="blue" />
+        </Link>
         <StatCard title="Active Classes" value="12" type="green" />
         <StatCard title="Pending Tasks" value="8" type="orange" />
         <StatCard title="Notifications" value="23" type="pink" />

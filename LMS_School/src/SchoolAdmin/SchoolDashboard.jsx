@@ -30,7 +30,7 @@ const SchoolDashboard = () => {
     localStorage.removeItem("schoolCode");
     localStorage.removeItem("schoolName");
 
-    navigate("/");
+    navigate("/sign-in");
   };
 
   return (

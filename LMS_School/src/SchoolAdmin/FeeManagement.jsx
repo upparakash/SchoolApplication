@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./FeeManagement.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const FEE_HEADS = [
   "Tuition Fee",
@@ -20,6 +20,7 @@ const FEE_HEADS = [
 const FeeManagement = () => {
   const schoolCode = localStorage.getItem("schoolCode");
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [students, setStudents] = useState([]);
   const [results, setResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,7 +37,30 @@ const FeeManagement = () => {
   const [fees, setFees] = useState({});
   const [pendingFees, setPendingFees] = useState({}); // New state for pending fees
   const [feeHistory, setFeeHistory] = useState([]);
+  const [pendingCounts, setPendingCounts] = useState({});
 
+  const fetchPendingCounts = async (studentList) => {
+  try {
+    const counts = {};
+
+    await Promise.all(
+      studentList.map(async (stu) => {
+        const res = await axios.get(
+          `${API_URL}/api/fee/pending-count/${stu.id}`
+        );
+        counts[stu.id] = res.data.count || 0;
+      })
+    );
+
+    setPendingCounts(counts);
+  } catch (err) {
+    console.error("❌ Pending count fetch failed", err);
+  }
+};
+
+  // -----------------------------------
+  // FETCH STUDENTS
+  // -----------------------------------
   // -----------------------------------
   // FETCH STUDENTS
   // -----------------------------------
@@ -46,28 +70,32 @@ const FeeManagement = () => {
       console.log("School Code:", schoolCode);
       console.log("API URL:", API_URL);
 
-      const res = await axios.get(
-        `${API_URL}/api/students?schoolCode=${schoolCode}`
-      );
-
+      const res = await axios.get(`${API_URL}/api/students?schoolCode=${schoolCode}`);
       console.log("✅ API Response:", res.data);
 
+      // Ensure data is an array
       const list = Array.isArray(res.data.data) ? res.data.data : [];
-      console.log("📋 Students List:", list);
 
-      setStudents(list);
-      setResults(list);
+      // Map backend fields to frontend-friendly names
+      const mappedList = list.map((s) => ({
+        ...s,
+        photo: s.profilePhoto, // map profilePhoto → photo
+        fullname: `${s.firstName} ${s.lastName}`, // add fullname
+      }));
+
+      console.log("📋 Mapped Students List:", mappedList);
+
+      setStudents(mappedList);
+      setResults(mappedList);
+      fetchPendingCounts(mappedList);
     } catch (err) {
       console.error("❌ Fetch Students Error:", err);
       console.error("Error Response:", err.response?.data);
       console.error("Error Status:", err.response?.status);
-      alert(
-        `Failed to fetch students: ${
-          err.response?.data?.message || err.message
-        }`
-      );
+      alert(`Failed to fetch students: ${err.response?.data?.message || err.message}`);
     }
   };
+
 
   useEffect(() => {
     if (!schoolCode) {
@@ -82,6 +110,29 @@ const FeeManagement = () => {
 
     fetchStudents();
   }, []);
+useEffect(() => {
+  if (!state || !state.payStudent || !students.length) return;
+
+  const matchedStudent = students.find(
+    s => s.id === state.payStudent.id
+  );
+
+  if (matchedStudent) {
+    openFeeModal(matchedStudent);
+
+    const autoPending = {};
+    state.selectedFees?.forEach(fee => {
+      autoPending[fee.feeHead] = {
+        amount: fee.amount,
+        note: fee.note || ""
+      };
+    });
+
+    setPendingFees(autoPending);
+  }
+}, [state, students]);
+
+
 
   // -----------------------------------
   // SEARCH
@@ -299,7 +350,7 @@ const FeeManagement = () => {
       const res = await axios.post(`${API_URL}/api/fee/pay`, requestPayload);
 
       // ===============================
-      // ✅ AFTER SUCCESS
+      //  AFTER SUCCESS
       // ===============================
       console.group("✅ FEE PAYMENT SUCCESS");
       console.log("✅ API Response:", res.data);
@@ -310,7 +361,7 @@ const FeeManagement = () => {
       fetchStudents();
     } catch (err) {
       // ===============================
-      // ❌ ERROR HANDLING
+      //  ERROR HANDLING
       // ===============================
       console.group("❌ FEE PAYMENT FAILED");
       console.error("Error Message:", err.message);
@@ -377,7 +428,7 @@ const FeeManagement = () => {
               <tr key={s.id}>
                 <td>
                   <img
-                    src={s.photo ? `${API_URL}${s.photo}` : "/user.png"}
+                    src={s.photo || "/user.png"}
                     className="student-photo"
                     alt="student"
                   />
@@ -393,14 +444,20 @@ const FeeManagement = () => {
                 <td>
                   <button onClick={() => openFeeModal(s)}>Add Fee</button>
                 </td>
-                <td>
-                  <button
-                    className="dues-btn"
-                    onClick={() => openOutstandingModal(s)}
-                  >
-                    Outstanding Dues
-                  </button>
-                </td>
+               <td>
+  <button
+    className="dues-btn"
+    onClick={() => openOutstandingModal(s)}
+  >
+    Outstanding Dues
+    {pendingCounts[s.id] > 0 && (
+      <span className="badge">
+        {pendingCounts[s.id]}
+      </span>
+    )}
+  </button>
+</td>
+
                 <td>
                   <button onClick={() => openHistoryModal(s)}>View</button>
                 </td>
